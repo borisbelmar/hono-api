@@ -311,9 +311,8 @@ model Note {
 ### 2. Crear Web Service
 
 - Conectar repositorio de GitHub
-- **Build Command:** `yarn install && yarn build && yarn prisma generate`
+- **Build Command:** `yarn install && yarn prisma generate && yarn prisma migrate deploy && yarn build`
 - **Start Command:** `yarn start`
-- **Pre-Deploy Command:** `yarn prisma:deploy`
 
 ### 3. Variables de entorno
 
