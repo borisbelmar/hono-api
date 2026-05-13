@@ -314,6 +314,18 @@ model Note {
 - **Build Command:** `yarn install --frozen-lockfile && yarn prisma generate && yarn prisma migrate deploy && yarn build`
 - **Start Command:** `yarn start`
 
+### Producción
+
+La API está desplegada en **https://hono-api-yt2r.onrender.com**
+
+Para probar contra producción desde Bruno, selecciona el environment **Production**.
+
+```
+POST https://hono-api-yt2r.onrender.com/auth/register
+POST https://hono-api-yt2r.onrender.com/auth/login
+GET  https://hono-api-yt2r.onrender.com/notes
+```
+
 ### 3. Variables de entorno
 
 | Variable | Valor |

@@ -23,7 +23,7 @@ body:json {
 }
 
 script:post-response {
-  bru.setEnvVar("token", res.getBody().token, { persist: true });
+  bru.setVar("token", res.body.token);
 }
 
 docs {
