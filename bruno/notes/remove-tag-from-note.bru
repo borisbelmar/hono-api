@@ -10,9 +10,12 @@ delete {
   auth: bearer
 }
 
+auth:bearer {
+  token: {{token}}
+}
+
 headers {
   Accept: application/json
-  Authorization: Bearer {{token}}
 }
 
 docs {

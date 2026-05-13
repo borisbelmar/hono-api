@@ -23,10 +23,7 @@ body:json {
 }
 
 script:post-response {
-  let data = res.getBody ? res.getBody() : res.body;
-  if (data && data.token) {
-    bru.setEnvVar("token", data.token, { persist: true });
-  }
+  bru.setEnvVar("token", res.getBody().token, { persist: true });
 }
 
 docs {

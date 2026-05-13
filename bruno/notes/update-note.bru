@@ -10,10 +10,13 @@ patch {
   auth: bearer
 }
 
+auth:bearer {
+  token: {{token}}
+}
+
 headers {
   Accept: application/json
   Content-Type: application/json
-  Authorization: Bearer {{token}}
 }
 
 body:json {
