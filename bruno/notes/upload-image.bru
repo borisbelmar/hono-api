@@ -6,16 +6,16 @@ meta {
 
 post {
   url: {{baseUrl}}/notes/upload
-  body: multipart-form
+  body: multipartForm
   auth: bearer
-}
-
-auth:bearer {
-  token: {{token}}
 }
 
 headers {
   Accept: application/json
+}
+
+auth:bearer {
+  token: {{token}}
 }
 
 body:multipart-form {
@@ -24,13 +24,13 @@ body:multipart-form {
 
 docs {
   Sube una imagen y devuelve la URL pública.
-
+  
   ## Auth
   Requiere token JWT.
-
+  
   ## Body (multipart/form-data)
   - image: Archivo de imagen (requerido, JPEG/PNG/WebP, max 5 MB)
-
+  
   ## Respuesta
   Devuelve 200 con { imageUrl }.
   Devuelve 400 si no se envía el archivo.
