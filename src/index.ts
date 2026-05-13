@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import { serve } from '@hono/node-server'
+import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { authMiddleware } from './middlewares/auth.middleware.js'
@@ -16,6 +17,9 @@ const app = new Hono<{ Variables: Variables }>()
 
 // CORS
 app.use('*', cors())
+
+// Archivos estáticos (solo desarrollo local)
+app.use('/uploads/*', serveStatic({ root: './' }))
 
 // Health check
 app.get('/', (c) => c.json({ status: 'ok', message: 'API de Notas — Unidad 3' }))

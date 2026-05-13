@@ -1,0 +1,38 @@
+meta {
+  name: Upload Image
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/notes/upload
+  body: multipart-form
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Accept: application/json
+}
+
+body:multipart-form {
+  image: @file(./test-image.jpg)
+}
+
+docs {
+  Sube una imagen y devuelve la URL pública.
+
+  ## Auth
+  Requiere token JWT.
+
+  ## Body (multipart/form-data)
+  - image: Archivo de imagen (requerido, JPEG/PNG/WebP, max 5 MB)
+
+  ## Respuesta
+  Devuelve 200 con { imageUrl }.
+  Devuelve 400 si no se envía el archivo.
+  Devuelve 422 si el tipo o tamaño no son válidos.
+}
