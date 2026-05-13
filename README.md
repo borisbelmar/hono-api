@@ -1,8 +1,8 @@
-# API de Notas — Unidad 2
+# API de Notas — Unidad 3
 
-API REST construida con arquitectura N-Layer. Permite gestionar notas organizadas por categorías y etiquetadas con tags.
+API REST con autenticación JWT, subida de imágenes y soporte para despliegue en producción. Las notas ahora pertenecen a usuarios, pueden incluir imágenes y coordenadas GPS.
 
-**Stack:** Node.js · TypeScript · Hono · Prisma 7 · Zod · PostgreSQL · Docker
+**Stack:** Node.js · TypeScript · Hono · Prisma 7 · Zod · bcryptjs · JWT · PostgreSQL · Docker · Cloudflare R2
 
 ---
 
@@ -30,11 +30,25 @@ Copia el archivo de ejemplo y ajusta los valores si es necesario:
 cp .env.example .env
 ```
 
-El `.env` por defecto apunta a la base de datos que levanta Docker:
+El `.env` debe tener al menos estas variables:
 
 ```
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/notesdb"
+PORT=3000
+JWT_SECRET="una-clave-secreta-larga-y-aleatoria"
 ```
+
+Para subida de imágenes (opcional en desarrollo), agrega las credenciales de Cloudflare R2:
+
+```
+R2_ACCOUNT_ID=""
+R2_ACCESS_KEY_ID=""
+R2_SECRET_ACCESS_KEY=""
+R2_BUCKET_NAME="notes-app"
+R2_PUBLIC_URL=""
+```
+
+Sin R2 configurado, las imágenes se guardan localmente en `uploads/`.
 
 ### 3. Levantar la base de datos
 
@@ -42,19 +56,11 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/notesdb"
 docker compose up -d
 ```
 
-Esto levanta un contenedor PostgreSQL 16 con los datos persistidos en un volumen Docker. Para verificar que está corriendo:
-
-```bash
-docker compose ps
-```
-
 ### 4. Generar el cliente de Prisma
 
 ```bash
 yarn prisma:generate
 ```
-
-Esto genera el cliente TypeScript en `src/generated/prisma/` a partir del schema.
 
 ### 5. Correr las migraciones
 
@@ -82,7 +88,8 @@ El servidor queda disponible en `http://localhost:3000`.
 | `yarn build` | Compila el proyecto con tsdown |
 | `yarn start` | Corre el build compilado |
 | `yarn prisma:generate` | Regenera el cliente Prisma desde el schema |
-| `yarn prisma:migrate` | Crea y aplica migraciones |
+| `yarn prisma:migrate` | Crea y aplica migraciones en desarrollo |
+| `yarn prisma:deploy` | Aplica migraciones existentes en producción |
 | `yarn prisma:studio` | Abre Prisma Studio (interfaz visual de la BD) |
 
 ---
@@ -100,116 +107,39 @@ Solo correr `yarn prisma:migrate` cuando hay cambios en `prisma/schema.prisma`.
 
 ---
 
-## Arquitectura N-Layer
-
-El código está organizado en capas. Cada capa tiene una única responsabilidad y solo se comunica con la capa inmediatamente debajo.
-
-```
-Request → Routes → Controller → Repository → Base de datos
-```
-
-### `src/schemas/`
-
-Define la forma que deben tener los datos de entrada usando Zod. Es la única fuente de verdad para validación en runtime y tipos en compile time. No ejecuta lógica, solo declara contratos.
-
-```
-src/schemas/
-└── notes.schema.ts    ← schemas de validación + tipos inferidos para los tres recursos
-```
-
-Los tipos (`CreateNoteInput`, `UpdateNoteInput`, etc.) se infieren directamente del schema con `z.infer`, por lo que nunca están desincronizados con las reglas de validación.
-
-### `src/repositories/`
-
-Única capa que habla con la base de datos. Cada repositorio define primero una interfaz TypeScript que actúa como contrato, y luego un objeto literal que implementa ese contrato usando Prisma. Si en el futuro se cambia de ORM o de base de datos, solo cambia este archivo — el resto del sistema no se entera.
-
-```
-src/repositories/
-├── notes.repository.ts        ← interfaz NoteRepository + implementación Prisma
-├── categories.repository.ts   ← interfaz CategoryRepository + implementación Prisma
-└── tags.repository.ts         ← interfaz TagRepository + implementación Prisma
-```
-
-Los métodos del repository devuelven tipos extendidos (`NoteWithRelations`) que incluyen las relaciones cargadas con `include`, ya que los tipos base de Prisma no las incluyen por defecto.
-
-### `src/controllers/`
-
-Coordina el flujo de cada endpoint: extrae datos del request, valida con Zod usando `safeParse`, llama al repository y devuelve la respuesta. No accede a Prisma directamente ni contiene lógica de negocio compleja.
-
-```
-src/controllers/
-├── notes.controller.ts
-├── categories.controller.ts
-└── tags.controller.ts
-```
-
-Los errores de Prisma se capturan con `try/catch` y se delegan a `parsePrismaError` para convertirlos en respuestas HTTP con el status correcto.
-
-### `src/routes/`
-
-Solo mapea URLs a funciones de controller. No contiene lógica, validaciones ni acceso a datos.
-
-```
-src/routes/
-├── notes.routes.ts        ← GET /notes, POST /notes, PATCH /notes/:id, etc.
-├── categories.routes.ts   ← GET /categories, POST /categories, etc.
-└── tags.routes.ts         ← GET /tags, POST /tags, etc.
-```
-
-### `src/lib/`
-
-Utilidades compartidas que no pertenecen a ninguna capa específica.
-
-```
-src/lib/
-├── prisma.ts          ← singleton de PrismaClient con driver adapter
-└── prisma-error.ts    ← helper para convertir errores de Prisma en respuestas HTTP
-```
-
-`prisma.ts` exporta una única instancia de `PrismaClient` usada por todos los repositories. Crear múltiples instancias agota el pool de conexiones.
-
-`prisma-error.ts` centraliza el mapeo de códigos de error de Prisma a status HTTP:
-
-| Código Prisma | Status HTTP | Causa |
-|---|---|---|
-| `P2002` | 409 Conflict | Valor duplicado en campo único |
-| `P2003` | 422 Unprocessable Entity | Foreign key que no existe |
-| `P2025` | 404 Not Found | Registro no encontrado |
-
-### `src/generated/`
-
-Código generado automáticamente por Prisma. No editar manualmente. Se regenera con `yarn prisma:generate`.
-
-### `src/index.ts`
-
-Entry point de la aplicación. Carga las variables de entorno, crea la instancia de Hono, monta los routers y arranca el servidor.
-
----
-
 ## Endpoints
 
-### Notas
+### Autenticación (públicos)
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/notes` | Lista todas las notas con categoría y tags |
-| GET | `/notes/:id` | Detalle de una nota |
-| POST | `/notes` | Crea una nota |
-| PATCH | `/notes/:id` | Actualiza título y/o contenido |
-| DELETE | `/notes/:id` | Elimina una nota |
-| POST | `/notes/:id/tags` | Asocia un tag existente a una nota |
+| POST | `/auth/register` | Crear cuenta, devuelve token JWT |
+| POST | `/auth/login` | Login, devuelve token JWT |
+
+### Notas (requieren autenticación)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/notes` | Lista notas del usuario autenticado |
+| GET | `/notes/:id` | Detalle de una nota (solo del usuario) |
+| POST | `/notes` | Crea una nota (con imageUrl, latitude, longitude opcionales) |
+| POST | `/notes/upload` | Sube una imagen, devuelve URL |
+| PATCH | `/notes/:id` | Actualiza una nota (solo del usuario) |
+| DELETE | `/notes/:id` | Elimina una nota (solo del usuario) |
+| POST | `/notes/:id/tags` | Asocia un tag a una nota |
 | DELETE | `/notes/:id/tags/:tagId` | Desasocia un tag de una nota |
 
-### Categorías
+### Categorías (requieren autenticación)
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/categories` | Lista todas las categorías |
 | GET | `/categories/:id` | Detalle de una categoría |
 | POST | `/categories` | Crea una categoría |
+| PATCH | `/categories/:id` | Actualiza una categoría |
 | DELETE | `/categories/:id` | Elimina una categoría |
 
-### Tags
+### Tags (requieren autenticación)
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -220,22 +150,201 @@ Entry point de la aplicación. Carga las variables de entorno, crea la instancia
 
 ---
 
+## Arquitectura N-Layer
+
+El código está organizado en capas. Cada capa tiene una única responsabilidad y solo se comunica con la capa inmediatamente debajo.
+
+```
+Request → Middleware → Routes → Controller → Repository → Base de datos
+```
+
+### `src/middlewares/`
+
+Interceptores que se ejecutan antes del controller. El middleware de autenticación verifica el token JWT y agrega el `userId` al contexto de Hono.
+
+```
+src/middlewares/
+└── auth.middleware.ts    ← verifica JWT, inyecta userId
+```
+
+### `src/schemas/`
+
+Define la forma que deben tener los datos de entrada usando Zod. Es la única fuente de verdad para validación en runtime y tipos en compile time.
+
+```
+src/schemas/
+├── auth.schema.ts        ← register + login
+└── notes.schema.ts       ← schemas de notas, categorías, tags
+```
+
+### `src/repositories/`
+
+Única capa que habla con la base de datos.
+
+```
+src/repositories/
+├── users.repository.ts      ← CRUD de usuarios
+├── notes.repository.ts      ← CRUD de notas (filtradas por userId)
+├── categories.repository.ts ← CRUD de categorías
+└── tags.repository.ts       ← CRUD de tags
+```
+
+### `src/controllers/`
+
+Coordina el flujo de cada endpoint: extrae datos del request, valida con Zod, llama al repository y devuelve la respuesta.
+
+```
+src/controllers/
+├── auth.controller.ts      ← register + login
+├── notes.controller.ts     ← CRUD de notas (recibe userId del contexto)
+├── categories.controller.ts
+├── tags.controller.ts
+└── upload.controller.ts    ← subida de imágenes
+```
+
+### `src/routes/`
+
+Solo mapea URLs a funciones de controller.
+
+```
+src/routes/
+├── auth.routes.ts          ← POST /auth/register, /auth/login
+├── notes.routes.ts         ← /notes, /notes/:id, /notes/upload, etc.
+├── categories.routes.ts    ← /categories, /categories/:id
+└── tags.routes.ts          ← /tags, /tags/:id
+```
+
+### `src/lib/`
+
+Utilidades compartidas.
+
+```
+src/lib/
+├── prisma.ts          ← singleton de PrismaClient
+├── prisma-error.ts    ← helper de errores Prisma → HTTP
+├── r2.ts              ← cliente S3 para Cloudflare R2
+└── upload.ts          ← uploadToR2 + uploadLocal
+```
+
+### `src/index.ts`
+
+Entry point. Configura CORS, monta middlewares de autenticación, rutas públicas y protegidas.
+
+---
+
+## Autenticación
+
+La API usa JWT (JSON Web Tokens) con bcrypt para hashing de contraseñas.
+
+### Flujo
+
+1. `POST /auth/register` — crea usuario, devuelve `{ token }`
+2. `POST /auth/login` — verifica credenciales, devuelve `{ token }`
+3. En cada request protegido, enviar: `Authorization: Bearer <token>`
+4. El token expira en 7 días
+
+### Seguridad
+
+- Las contraseñas se guardan como hash bcrypt (saltRounds: 10)
+- El mismo mensaje "Credenciales inválidas" para email inexistente y contraseña incorrecta (no leaks de información)
+- El payload del JWT incluye solo `sub` (userId) y `email`
+
+---
+
+## Subida de imágenes
+
+### Local (desarrollo)
+
+Sin R2 configurado, las imágenes se guardan en `uploads/` y se sirven como estáticos:
+
+```bash
+curl -X POST http://localhost:3000/notes/upload \
+  -H "Authorization: Bearer <token>" \
+  -F "image=@foto.jpg"
+```
+
+### Cloudflare R2 (producción)
+
+Configura las variables `R2_*` en el `.env`. La subida se hace al bucket configurado y devuelve una URL pública.
+
+Tipos aceptados: `image/jpeg`, `image/png`, `image/webp`. Tamaño máximo: 5 MB.
+
+---
+
+## Modelo de datos
+
+```prisma
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  notes        Note[]
+}
+
+model Note {
+  id         Int       @id @default(autoincrement())
+  title      String
+  content    String
+  imageUrl   String?
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id])
+  userId     Int
+  category   Category  @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  tags       NoteTag[]
+}
+```
+
+---
+
+## Despliegue en Render
+
+### 1. Crear base de datos PostgreSQL en Render
+
+- Nueva instancia de PostgreSQL
+- Copiar la **Internal Database URL**
+
+### 2. Crear Web Service
+
+- Conectar repositorio de GitHub
+- **Build Command:** `yarn install && yarn build && yarn prisma generate`
+- **Start Command:** `yarn start`
+- **Pre-Deploy Command:** `yarn prisma:deploy`
+
+### 3. Variables de entorno
+
+| Variable | Valor |
+|---|---|
+| `DATABASE_URL` | Internal Database URL de Render |
+| `JWT_SECRET` | Clave secreta (generar con `openssl rand -base64 32`) |
+| `R2_*` | Credenciales de Cloudflare R2 |
+| `NODE_ENV` | `production` |
+
+---
+
 ## Estructura del proyecto
 
 ```
 ├── bruno/                  ← colección Bruno para probar la API
 ├── prisma/
-│   └── schema.prisma       ← modelos: Note, Category, Tag, NoteTag
-├── prisma.config.ts        ← configuración de Prisma 7 (datasource, migraciones)
+│   ├── schema.prisma       ← modelos: User, Note, Category, Tag, NoteTag
+│   └── migrations/         ← migraciones (commiteadas para producción)
+├── prisma.config.ts        ← configuración de Prisma 7
 ├── src/
 │   ├── index.ts
+│   ├── middlewares/
 │   ├── schemas/
 │   ├── repositories/
 │   ├── controllers/
 │   ├── routes/
 │   ├── lib/
-│   └── generated/          ← cliente Prisma generado (no editar)
+│   └── generated/          ← cliente Prisma generado
 ├── docker-compose.yml
+├── uploads/                ← imágenes locales (solo desarrollo)
 ├── .env                    ← no se sube al repo
 ├── .env.example
 └── tsconfig.json
@@ -243,27 +352,31 @@ Entry point de la aplicación. Carga las variables de entorno, crea la instancia
 
 ---
 
-## Probar la API
+## Probar la API con Bruno
 
-La carpeta `bruno/` contiene una colección lista para usar con [Bruno](https://www.usebruno.com/), un cliente API open source. Abre Bruno, importa la carpeta y selecciona el entorno `Development`.
+La carpeta `bruno/` contiene una colección lista para usar con [Bruno](https://www.usebruno.com/). Abre Bruno, importa la carpeta y selecciona el entorno **Local**.
 
-El orden recomendado para probar por primera vez:
+El orden recomendado:
 
-1. Crear una categoría (`POST /categories`)
-2. Crear un tag (`POST /tags`)
-3. Crear una nota con el `categoryId` obtenido en el paso 1
-4. Asociar el tag a la nota
+1. **Register** o **Login** (el token se guarda automáticamente como secreto)
+2. **Create Category**
+3. **Create Tag**
+4. **Upload Image** (seleccionar archivo en el Body tab)
+5. **Create Note** (usa el categoryId y imageUrl obtenidos)
+6. **Get Notes** (solo las del usuario autenticado)
+
+Los endpoints protegidos usan `auth:bearer { token: {{token}} }` y el token se persiste como `vars:secret` en el environment.
 
 ---
 
 ## Errores comunes
 
-**`Can't reach database server`** — La BD no está corriendo. Ejecuta `docker compose up -d`.
-
-**`The table does not exist`** — Falta correr las migraciones. Ejecuta `yarn prisma:migrate`.
-
-**`Environment variable not found: DATABASE_URL`** — Falta el archivo `.env`. Copia `.env.example`.
-
-**`client password must be a string`** — `DATABASE_URL` no se está cargando. Verifica que `import 'dotenv/config'` sea la primera línea de `src/index.ts`.
-
-**`@prisma/client did not initialize yet`** — Falta generar el cliente. Ejecuta `yarn prisma:generate`.
+| Error | Causa | Solución |
+|---|---|---|
+| `Can't reach database server` | BD no corriendo | `docker compose up -d` |
+| `The table does not exist` | Migraciones no aplicadas | `yarn prisma:migrate` |
+| `secretOrPrivateKey must have a value` | `JWT_SECRET` no definida | Verificar `.env` |
+| `401 Token requerido` | Falta header `Authorization` | Enviar `Bearer <token>` |
+| `Credenciales inválidas` | Email o password incorrectos | Verificar credenciales |
+| `Tipo de archivo no permitido` | Formato de imagen no soportado | Usar JPEG, PNG o WebP |
+| `El archivo supera el límite de 5 MB` | Imagen muy grande | Comprimir o reducir tamaño |
