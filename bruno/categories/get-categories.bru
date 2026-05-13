@@ -7,13 +7,17 @@ meta {
 get {
   url: {{baseUrl}}/categories
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
+  Authorization: Bearer {{token}}
 }
 
 docs {
   Lista todas las categorías.
+
+  ## Auth
+  Requiere token JWT.
 }

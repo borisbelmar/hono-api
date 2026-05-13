@@ -7,19 +7,23 @@ meta {
 post {
   url: {{baseUrl}}/notes
   body: json
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
   Content-Type: application/json
+  Authorization: Bearer {{token}}
 }
 
 body:json {
   {
-    "title": "Mi primera nota",
-    "content": "Contenido de la nota",
-    "categoryId": 1
+    "title": "Nota con foto y coordenadas",
+    "content": "Ejemplo con todos los campos opcionales",
+    "categoryId": 1,
+    "imageUrl": "https://pub-xxxxx.r2.dev/notes/uuid.jpg",
+    "latitude": -33.4489,
+    "longitude": -70.6693
   }
 }
 
@@ -30,14 +34,20 @@ script:post-response {
 }
 
 docs {
-  Crea una nueva nota.
-  
+  Crea una nueva nota para el usuario autenticado.
+
+  ## Auth
+  Requiere token JWT.
+
   ## Body
   - title: Título de la nota (requerido, max 100 chars)
   - content: Contenido de la nota (requerido)
   - categoryId: ID de la categoría (requerido, entero positivo)
-  
+  - imageUrl: URL pública de la imagen (opcional)
+  - latitude: Coordenada latitud (opcional, -90 a 90)
+  - longitude: Coordenada longitud (opcional, -180 a 180)
+
   ## Respuesta
-  Devuelve 201 con la nota creada, incluyendo categoría.
-  Devuelve 400 con errores de validación si el body es inválido.
+  Devuelve 201 con la nota creada.
+  Devuelve 400 si el body es inválido.
 }

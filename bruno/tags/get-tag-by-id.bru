@@ -7,14 +7,20 @@ meta {
 get {
   url: {{baseUrl}}/tags/{{tagId}}
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
+  Authorization: Bearer {{token}}
 }
 
 docs {
   Retorna una etiqueta por su ID.
+
+  ## Auth
+  Requiere token JWT.
+
+  ## Respuesta
   Devuelve 404 si no existe.
 }

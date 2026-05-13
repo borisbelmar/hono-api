@@ -7,13 +7,17 @@ meta {
 get {
   url: {{baseUrl}}/notes
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
+  Authorization: Bearer {{token}}
 }
 
 docs {
-  Lista todas las notas con su categoría y etiquetas incluidas.
+  Lista las notas del usuario autenticado con su categoría y etiquetas incluidas.
+
+  ## Auth
+  Requiere token JWT en el header Authorization.
 }

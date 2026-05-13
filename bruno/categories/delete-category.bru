@@ -7,15 +7,19 @@ meta {
 delete {
   url: {{baseUrl}}/categories/{{categoryId}}
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
+  Authorization: Bearer {{token}}
 }
 
 docs {
   Elimina una categoría por su ID.
+
+  ## Auth
+  Requiere token JWT.
 
   ## Respuesta
   Devuelve 200 con mensaje de confirmación.

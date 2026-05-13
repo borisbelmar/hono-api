@@ -7,14 +7,21 @@ meta {
 get {
   url: {{baseUrl}}/notes/{{noteId}}
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
+  Authorization: Bearer {{token}}
 }
 
 docs {
-  Retorna el detalle de una nota por su ID.
-  Devuelve 404 si la nota no existe.
+  Retorna el detalle de una nota por su ID (solo si pertenece al usuario autenticado).
+
+  ## Auth
+  Requiere token JWT.
+
+  ## Respuesta
+  Devuelve 200 con la nota.
+  Devuelve 404 si la nota no existe o no pertenece al usuario.
 }

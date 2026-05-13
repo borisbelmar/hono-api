@@ -1,0 +1,41 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{email}}",
+    "password": "{{password}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.token) {
+    bru.setEnvVar("token", res.body.token);
+  }
+}
+
+docs {
+  Inicia sesión con credenciales existentes.
+
+  ## Body
+  - email: Correo electrónico (requerido)
+  - password: Contraseña (requerido)
+
+  ## Respuesta
+  Devuelve 200 con un token JWT.
+  Devuelve 401 con "Credenciales inválidas" si email o contraseña son incorrectos.
+}

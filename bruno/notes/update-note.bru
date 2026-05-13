@@ -7,30 +7,39 @@ meta {
 patch {
   url: {{baseUrl}}/notes/{{noteId}}
   body: json
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
   Content-Type: application/json
+  Authorization: Bearer {{token}}
 }
 
 body:json {
   {
     "title": "Título actualizado",
-    "content": "Contenido actualizado"
+    "content": "Contenido actualizado",
+    "latitude": -33.45,
+    "longitude": -70.66
   }
 }
 
 docs {
-  Actualización parcial de una nota.
+  Actualización parcial de una nota (solo si pertenece al usuario autenticado).
+
+  ## Auth
+  Requiere token JWT.
 
   ## Body (todos los campos son opcionales)
   - title: Nuevo título (max 100 chars)
   - content: Nuevo contenido
+  - imageUrl: Nueva URL de imagen (opcional)
+  - latitude: Nueva latitud (opcional)
+  - longitude: Nueva longitud (opcional)
 
   ## Respuesta
   Devuelve 200 con la nota actualizada.
   Devuelve 400 si el body es inválido.
-  Devuelve 404 si la nota no existe.
+  Devuelve 404 si la nota no existe o no pertenece al usuario.
 }

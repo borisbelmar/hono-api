@@ -7,13 +7,17 @@ meta {
 get {
   url: {{baseUrl}}/tags
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
+  Authorization: Bearer {{token}}
 }
 
 docs {
   Lista todas las etiquetas.
+
+  ## Auth
+  Requiere token JWT.
 }

@@ -7,12 +7,13 @@ meta {
 post {
   url: {{baseUrl}}/notes/{{noteId}}/tags
   body: json
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
   Content-Type: application/json
+  Authorization: Bearer {{token}}
 }
 
 body:json {
@@ -22,7 +23,10 @@ body:json {
 }
 
 docs {
-  Asocia una etiqueta existente a una nota.
+  Asocia una etiqueta existente a una nota (solo si pertenece al usuario autenticado).
+
+  ## Auth
+  Requiere token JWT.
 
   ## Body
   - tagId: ID de la etiqueta a asociar (requerido, entero positivo)

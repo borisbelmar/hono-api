@@ -7,15 +7,19 @@ meta {
 delete {
   url: {{baseUrl}}/notes/{{noteId}}/tags/{{tagId}}
   body: none
-  auth: none
+  auth: bearer
 }
 
 headers {
   Accept: application/json
+  Authorization: Bearer {{token}}
 }
 
 docs {
-  Desasocia una etiqueta de una nota.
+  Desasocia una etiqueta de una nota (solo si pertenece al usuario autenticado).
+
+  ## Auth
+  Requiere token JWT.
 
   ## Respuesta
   Devuelve 200 con mensaje de confirmación.
