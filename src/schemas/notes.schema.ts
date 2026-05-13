@@ -6,12 +6,18 @@ import * as z from 'zod'
 export const createNoteSchema = z.object({
   title:      z.string().min(1).max(100),
   content:    z.string().min(1),
-  categoryId: z.number().int().positive()
+  categoryId: z.number().int().positive(),
+  imageUrl:   z.string().url().optional(),
+  latitude:   z.number().min(-90).max(90).optional(),
+  longitude:  z.number().min(-180).max(180).optional(),
 })
 
 export const updateNoteSchema = z.object({
-  title:   z.string().min(1).max(100).optional(),
-  content: z.string().min(1).optional()
+  title:     z.string().min(1).max(100).optional(),
+  content:   z.string().min(1).optional(),
+  imageUrl:  z.string().url().optional(),
+  latitude:  z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 })
 
 export const createCategorySchema = z.object({

@@ -15,13 +15,13 @@ export type NoteWithRelations = Note & {
 // debajo — routes, controllers y schemas no se tocan.
 // -------------------------------------------------------------------
 interface NoteRepository {
-  findAll:  ()                               => Promise<NoteWithRelations[]>
-  findById: (id: number)                     => Promise<NoteWithRelations | null>
-  create:   (data: CreateNoteInput)          => Promise<NoteWithRelations>
-  update:   (id: number, data: UpdateNoteInput) => Promise<NoteWithRelations>
-  remove:   (id: number)                     => Promise<void>
-  addTag:   (noteId: number, tagId: number)  => Promise<void>
-  removeTag:(noteId: number, tagId: number)  => Promise<void>
+  findAll:  (userId: number)                       => Promise<NoteWithRelations[]>
+  findById: (id: number, userId: number)           => Promise<NoteWithRelations | null>
+  create:   (data: CreateNoteInput, userId: number)    => Promise<NoteWithRelations>
+  update:   (id: number, data: UpdateNoteInput)    => Promise<NoteWithRelations>
+  remove:   (id: number)                           => Promise<void>
+  addTag:   (noteId: number, tagId: number)        => Promise<void>
+  removeTag:(noteId: number, tagId: number)        => Promise<void>
 }
 
 // -------------------------------------------------------------------
@@ -35,14 +35,14 @@ const noteInclude = {
 } as const
 
 export const notesRepository: NoteRepository = {
-  findAll: () =>
-    prisma.note.findMany({ include: noteInclude }),
+  findAll: (userId) =>
+    prisma.note.findMany({ where: { userId }, include: noteInclude }),
 
-  findById: (id) =>
-    prisma.note.findUnique({ where: { id }, include: noteInclude }),
+  findById: (id, userId) =>
+    prisma.note.findFirst({ where: { id, userId }, include: noteInclude }),
 
-  create: (data) =>
-    prisma.note.create({ data, include: noteInclude }),
+  create: (data, userId) =>
+    prisma.note.create({ data: { ...data, userId }, include: noteInclude }),
 
   update: (id, data) =>
     prisma.note.update({ where: { id }, data, include: noteInclude }),
