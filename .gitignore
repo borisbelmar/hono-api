@@ -12,8 +12,8 @@ src/generated/
 .env.*
 !.env.example
 
-# Prisma
-prisma/migrations/
+# Nota: las migraciones de Prisma se commitean (necesarias para prisma migrate deploy en producción)
+# prisma/migrations/
 
 # Yarn
 .yarn/cache
@@ -21,3 +21,6 @@ prisma/migrations/
 
 # Logs
 *.log
+
+# Uploads (desarrollo local)
+uploads/

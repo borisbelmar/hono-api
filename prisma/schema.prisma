@@ -7,29 +7,39 @@ datasource db {
   provider = "postgresql"
 }
 
-// Una categoría tiene muchas notas (one-to-many)
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  notes        Note[]
+}
+
 model Category {
   id    Int    @id @default(autoincrement())
   name  String @unique
   notes Note[]
 }
 
-// Una etiqueta puede estar en muchas notas (many-to-many)
 model Tag {
   id    Int       @id @default(autoincrement())
   name  String    @unique
   notes NoteTag[]
 }
 
-// Una nota pertenece a una categoría y puede tener muchas etiquetas
 model Note {
   id         Int       @id @default(autoincrement())
   title      String
   content    String
+  imageUrl   String?
+  latitude   Float?
+  longitude  Float?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   category   Category  @relation(fields: [categoryId], references: [id])
   categoryId Int
+  user       User      @relation(fields: [userId], references: [id])
+  userId     Int
   tags       NoteTag[]
 }
 
