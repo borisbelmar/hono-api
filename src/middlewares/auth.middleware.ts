@@ -1,5 +1,6 @@
 import type { Context, Next } from 'hono'
-import { verify } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
+const { verify } = jwt
 
 const JWT_SECRET = process.env.JWT_SECRET!
 

@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsdown",
-    "start": "node dist/index.js",
+    "start": "node dist/index.mjs",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:generate": "prisma generate"
   },

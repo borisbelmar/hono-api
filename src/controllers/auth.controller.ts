@@ -1,6 +1,7 @@
 import type { Context } from 'hono'
 import bcrypt from 'bcryptjs'
-import { sign } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
+const { sign } = jwt
 import { usersRepository } from '../repositories/users.repository.js'
 import { registerSchema, loginSchema } from '../schemas/auth.schema.js'
 import { parsePrismaError } from '../lib/prisma-error.js'
