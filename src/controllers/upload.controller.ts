@@ -1,5 +1,11 @@
 import type { Context } from 'hono'
-import { uploadLocal } from '../lib/upload.js'
+import { uploadLocal, uploadToR2 } from '../lib/upload.js'
+
+const hasR2Config = () =>
+  !!process.env.R2_ACCOUNT_ID &&
+  !!process.env.R2_ACCESS_KEY_ID &&
+  !!process.env.R2_SECRET_ACCESS_KEY &&
+  !!process.env.R2_PUBLIC_URL
 
 export const uploadImage = async (c: Context) => {
   const body = await c.req.parseBody()
@@ -19,6 +25,6 @@ export const uploadImage = async (c: Context) => {
     return c.json({ error: 'El archivo supera el límite de 5 MB' }, 422)
   }
 
-  const imageUrl = await uploadLocal(file)
+  const imageUrl = hasR2Config() ? await uploadToR2(file) : await uploadLocal(file)
   return c.json({ imageUrl })
 }
