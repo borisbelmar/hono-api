@@ -23,8 +23,9 @@ body:json {
 }
 
 script:post-response {
-  if (res.status === 200 && res.body.token) {
-    bru.setEnvVar("token", res.body.token);
+  let data = res.getBody ? res.getBody() : res.body;
+  if (data && data.token) {
+    bru.setEnvVar("token", data.token, { persist: true });
   }
 }
 
